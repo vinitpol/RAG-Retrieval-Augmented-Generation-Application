@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Application</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body>
+  <div class="upload-container">
+    <h1>Upload Your Files</h1>
+    <form id="upload-form">
+      <label class="upload-box">
+        <input id="file-input" type="file" accept=".pdf,.txt">
+        <span class="upload-instructions">
+          Drag & drop your PDF or text files here, or click to browse.
+        </span>
+      </label>
+      <button type="submit" class="upload-btn">Upload</button>
+    </form>
+    <div id="response-message" style="margin-top: 20px;"></div>
+  </div>
+
+  <!-- Question and Answer Section -->
+  <!-- <div id="qa-section" style="display: none; margin-top: 40px;">
+    <h2>Ask a Question</h2>
+    <form id="qa-form">
+      <textarea id="question-input" placeholder="Type your question here..." rows="4" style="width: 100%;"></textarea>
+      <button type="submit" class="upload-btn" style="margin-top: 10px;">Submit Question</button>
+    </form>
+    <div id="answer-response" style="margin-top: 20px;"></div>
+  </div> -->
+  <div class="container">
+    <div id="qa-section">
+      <h2>Ask a Question</h2>
+      <form id="qa-form">
+        <textarea id="question-input" placeholder="Type your question here..." rows="4"></textarea>
+        <button type="submit" class="upload-btn">Submit Question</button>
+      </form>
+      <div id="answer-response"></div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('upload-form').addEventListener('submit', async function (event) {
+      event.preventDefault(); // Prevent the default form submission
+
+      const fileInput = document.getElementById('file-input');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert('Please select a file to upload.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await fetch('/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          document.getElementById('response-message').textContent = result.message;
+
+          // Show QA section
+          document.getElementById('qa-section').style.display = 'block';
+        } else {
+          document.getElementById('response-message').textContent = `Error: ${result.error}`;
+        }
+      } catch (error) {
+        document.getElementById('response-message').textContent = 'An error occurred while uploading the file.';
+        console.error(error);
+      }
+    });
+
+    // Select the form and response elements
+    const qaForm = document.getElementById('qa-form');
+    const questionInput = document.getElementById('question-input');
+    const answerResponse = document.getElementById('answer-response');
+
+    // Add submit event listener to the form
+    qaForm.addEventListener('submit', async (event) => {
+      event.preventDefault(); // Prevent page refresh
+
+      const question = questionInput.value.trim();
+      if (!question) {
+        answerResponse.textContent = "Please enter a question!";
+        answerResponse.style.color = "red";
+        return;
+      }
+
+      // Clear previous response
+      answerResponse.textContent = "Loading...";
+
+      try {
+        // Make a POST request to the /ask endpoint
+        const response = await fetch('/ask', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ query: question })
+        });
+
+        // Parse the JSON response
+        const result = await response.json();
+
+        if (response.ok) {
+          answerResponse.textContent = `Answer: ${result.answer}`;
+          answerResponse.style.color = "green";
+        } else {
+          answerResponse.textContent = `Error: ${result.error}`;
+          answerResponse.style.color = "red";
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        answerResponse.textContent = "An error occurred while processing your request.";
+        answerResponse.style.color = "red";
+      }
+    });
+  </script>
+</body>
+
+</html>
